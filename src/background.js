@@ -1,16 +1,22 @@
+import {
+  app,
+  protocol,
+  BrowserWindow,
+  ipcMain,
+} from 'electron';
 
-
-import { app, protocol, BrowserWindow } from 'electron';
 import {
   createProtocol,
   installVueDevtools,
 } from 'vue-cli-plugin-electron-builder/lib';
+
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
+let worker;
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { secure: true, standard: true } }]);
@@ -18,8 +24,8 @@ protocol.registerSchemesAsPrivileged([{ scheme: 'app', privileges: { secure: tru
 function createWindow() {
   // Create the browser window.
   win = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
     webPreferences: {
       nodeIntegration: true,
     },
@@ -69,6 +75,34 @@ app.on('ready', async () => {
     }
   }
   createWindow();
+
+  worker = new BrowserWindow({
+    show: false,
+    webPreferences: { nodeIntegration: true },
+  });
+
+  if (process.env.WEBPACK_DEV_SERVER_URL) {
+    // Load the url of the dev server if in development mode
+    await worker.loadURL(`${process.env.WEBPACK_DEV_SERVER_URL}worker`);
+    worker.webContents.openDevTools();
+  } else {
+    createProtocol('app');
+    // Load the index.html when not in development
+    await worker.loadURL('app://./worker.html');
+  }
+});
+
+ipcMain.on('compressionStarted', (event, compressionPayload) => {
+  console.log('!!--- Compression Start ---!!');
+  worker.webContents.send('compress', compressionPayload);
+});
+
+ipcMain.on('compressionFinished', (event, cImage) => {
+  if (cImage.status === 2 || cImage.status === -1) {
+    console.log(`!!--- Compression finished for ${cImage.fullpath} ---!!`);
+  }
+  win.webContents.send('cImageCompressionFinished', cImage);
+  // ipcRenderer.send('cImageCompressionFinished', cImage);
 });
 
 // Exit cleanly on request from parent process in development mode.

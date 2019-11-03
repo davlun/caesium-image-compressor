@@ -1,6 +1,6 @@
 import { COMPRESSOR_MODES } from '../../utils/variables';
 
-import CImage from '../../models/CImage';
+import { create } from '../../models/CImage';
 
 const mutations = {
   SWITCH_MODE(state, mode) {
@@ -9,13 +9,20 @@ const mutations = {
   ADD_FILES(state, fileList) {
     const importedFiles = state.files;
     fileList.forEach((fullPath) => {
-      const cImage = new CImage(fullPath);
+      // TODO Detect duplicates
+      const cImage = create(fullPath);
       importedFiles.push(cImage);
     });
     state.files = importedFiles;
   },
   CLEAR_FILES(state) {
     state.files = [];
+  },
+  SET_FILE(state, cImage) {
+    const fileIndex = state.files.findIndex(obj => obj.uuid === cImage.uuid);
+    const currentList = [...state.files];
+    currentList[fileIndex] = cImage;
+    state.files = currentList;
   },
 };
 
@@ -30,6 +37,14 @@ const actions = {
   clearFiles({ commit }) {
     commit('CLEAR_FILES');
   },
+  setFile({ commit }, cImage) {
+    // TODO Bad
+    commit('SET_FILE', cImage);
+  },
+};
+
+const getters = {
+  fileList: state => state.files,
 };
 
 const state = {
@@ -41,5 +56,6 @@ export default {
   state,
   mutations,
   actions,
+  getters,
   namespaced: true,
 };

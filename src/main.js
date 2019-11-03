@@ -4,6 +4,7 @@ import router from './router';
 import store from './store';
 
 import '@/assets/css/main.css'; // Global CSS
+import '@fortawesome/fontawesome-free/css/all.css';
 
 Vue.config.productionTip = false;
 
